@@ -56,6 +56,8 @@ void measure
  const uint64_t numItr,
  const uint64_t givenSeed
 ) {
+  const std::string resultformat = "RESULT file=" + in + " ";
+
   SlpT slp;
 
   auto start = timer::now();
@@ -80,6 +82,7 @@ void measure
   const uint64_t numLoop = 11;
   uint64_t checksum0 = 0;
   uint64_t checksum1 = 0;
+  uint64_t checksum2 = 0;
 
   {
     std::vector<double> times(numLoop);
@@ -87,16 +90,20 @@ void measure
       uniform_int_distribution<uint64_t> rndUniform(0, textLen - 1);
       mt19937_64 mt(seed);
       start = timer::now();
+      const uint64_t p1 = rndUniform(mt);
       for (uint64_t i = 0; i < numItr; ++i) {
-        const uint64_t p1 = rndUniform(mt);
-        const uint64_t p2 = rndUniform(mt);
-        checksum0 += lceToR(slp, p1, p2);
+        PersistentInitialStack<typename SlpT::nodeT> stack;
+        for(uint64_t innerloop = 0; innerloop < 2; ++innerloop) {
+          const uint64_t p2 = rndUniform(mt);
+          checksum2 += lceToRBounded<SlpT, decltype(stack)>(slp, p1, p2, 10000000000, stack);
+          stack.reset();
+        }
       }
       stop = timer::now();
       times[loop] = (double)duration_cast<microseconds>(stop-start).count() / numItr;
     }
     std::sort(times.begin(), times.end());
-    cout << "time to lce queries (micro sec per query): " << times[numLoop / 2] << endl;
+    cout <<  resultformat << "algo=persistent type=lcequery msecs=" << times[numLoop / 2] << endl;
   }
 
   {
@@ -105,24 +112,78 @@ void measure
       uniform_int_distribution<uint64_t> rndUniform(0, textLen - 1);
       mt19937_64 mt(seed);
       start = timer::now();
+      const uint64_t p1 = rndUniform(mt);
       for (uint64_t i = 0; i < numItr; ++i) {
-        const uint64_t p1 = rndUniform(mt);
-        const uint64_t p2 = rndUniform(mt);
-        checksum1 += lceToR(slp, p1, p2);
+        for(uint64_t innerloop = 0; innerloop < 2; ++innerloop) {
+          const uint64_t p2 = rndUniform(mt);
+          std::stack<typename SlpT::nodeT> stack;
+          checksum0 += lceToRBounded<SlpT, decltype(stack)>(slp, p1, p2,10000000000, stack);
+        }
       }
       stop = timer::now();
       times[loop] = (double)duration_cast<microseconds>(stop-start).count() / numItr;
     }
     std::sort(times.begin(), times.end());
-    cout << "time to naive lce queries (micro sec per query): " << times[numLoop / 2] << endl;
+    cout << resultformat << "algo=liststack type=lcequery msecs=" << times[numLoop / 2] << endl;
   }
 
-  cout << "averagec LCE length = " << checksum0 / (numItr * numLoop) << endl;
+  {
+    uint64_t checksum4 = 0;
+    std::vector<double> times(numLoop);
+    for (uint64_t loop = 0; loop < numLoop; ++loop) {
+      uniform_int_distribution<uint64_t> rndUniform(0, textLen - 1);
+      mt19937_64 mt(seed);
+      start = timer::now();
+      const uint64_t p1 = rndUniform(mt);
+      for (uint64_t i = 0; i < numItr; ++i) {
+        for(uint64_t innerloop = 0; innerloop < 2; ++innerloop) {
+          const uint64_t p2 = rndUniform(mt);
+          std::stack<typename SlpT::nodeT, std::vector<typename SlpT::nodeT>> stack;
+          checksum4 += lceToRBounded<SlpT, decltype(stack)>(slp, p1, p2,10000000000, stack);
+        }
+      }
+      stop = timer::now();
+      times[loop] = (double)duration_cast<microseconds>(stop-start).count() / numItr;
+    }
+    std::sort(times.begin(), times.end());
+    cout << resultformat << "algo=arraystack type=lcequery msecs=" << times[numLoop / 2] << endl;
+  }
+
+
+
+  {
+    std::vector<double> times(numLoop);
+    for (uint64_t loop = 0; loop < numLoop; ++loop) {
+      uniform_int_distribution<uint64_t> rndUniform(0, textLen - 1);
+      mt19937_64 mt(seed);
+      start = timer::now();
+      const uint64_t p1 = rndUniform(mt);
+      for (uint64_t i = 0; i < numItr; ++i) {
+        for(uint64_t innerloop = 0; innerloop < 2; ++innerloop) {
+          const uint64_t p2 = rndUniform(mt);
+          checksum1 += lceToR(slp, p1, p2);
+        }
+      }
+      stop = timer::now();
+      times[loop] = (double)duration_cast<microseconds>(stop-start).count() / numItr;
+    }
+    std::sort(times.begin(), times.end());
+    cout << resultformat << "algo=plain: type=lcequery msecs=" << times[numLoop / 2] << endl;
+  }
+
+  cout << "averagec LCE length = " << (checksum0*1.0 / (numItr * numLoop)) << endl;
   if (checksum0 == checksum1) {
     cout << "checksum match: checksum0 = " << checksum0 << ", checksum1 = " << checksum1 << endl;
   } else {
     cout << "checksum ERROR: checksum0 = " << checksum0 << ", checksum1 = " << checksum1 << endl;
   }
+
+  if (checksum2 == checksum1) {
+    cout << "checksum match: checksum2 = " << checksum2 << ", checksum1 = " << checksum1 << endl;
+  } else {
+    cout << "checksum ERROR: checksum2 = " << checksum2 << ", checksum1 = " << checksum1 << endl;
+  }
+
 }
 
 
