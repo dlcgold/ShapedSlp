@@ -293,6 +293,7 @@ uint64_t lceToR
 
   getPrefixPath(slp, path1, p1);
   getPrefixPath(slp, path2, p2);
+  if(path1.empty() || path2.empty()) return 0;
 
   uint64_t l = 0;
   while (true) {
@@ -345,6 +346,8 @@ uint64_t lceToRBounded
   }
   getPrefixPath(slp, path2, p2);
 
+  if(path1.empty() || path2.empty()) return 0;
+
   uint64_t l = 0;
   while (true) {
     auto n1 = path1.top();
@@ -392,6 +395,8 @@ uint64_t lceToR_Naive
   getPrefixPath(slp, path1, p1);
   getPrefixPath(slp, path2, p2);
 
+  if(path1.empty() || path2.empty()) return 0;
+
   uint64_t l = 0;
   while (true) {
     auto n1 = path1.top();
@@ -431,6 +436,8 @@ uint64_t lceToR_NaiveBounded
 
   getPrefixPath(slp, path1, p1);
   getPrefixPath(slp, path2, p2);
+
+  if(path1.empty() || path2.empty()) return 0;
 
   uint64_t l = 0;
   while (true) {
