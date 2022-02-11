@@ -20,7 +20,7 @@ struct PairT
 };
 
 
-void padVLine
+inline void padVLine
 (
  const uint64_t pad
  ) {
@@ -30,7 +30,7 @@ void padVLine
 }
 
 
-uint32_t ceilLog2(uint64_t x) {
+inline uint32_t ceilLog2(uint64_t x) {
   if (x == 0) {
     return 1;
   }
